@@ -5,7 +5,6 @@ import yaml
 import torch
 import torch.nn as nn
 
-# TODO Deal with different sizes
 class ResidualUnit(nn.Module):
     def __init__(self, params, bn_features, activation, shortcut=None):
         super().__init__()
@@ -21,9 +20,9 @@ class ResidualUnit(nn.Module):
     def forward(self, x):
         input_tensor = x
         x = self.conv1(x)
-        x = self.batchnorm(x)
+        x = self.bn1(x)
         x = self.activation(x)
-        x = self.batchnorm(x)
+        x = self.bn2(x)
         x = self.conv2(x)
         if self.shortcut:
             input_tensor = self.shortcut(input_tensor)
