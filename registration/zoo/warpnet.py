@@ -80,13 +80,16 @@ class WarpNet(nn.Module):
                 shortcut = nn.Sequential(
                     nn.Conv2d(**shortcut_params)
                 )
-                layers.append(layer(params, bn_features,activation, shortcut))
+                layers.append(layer(params, bn_features, activation, shortcut))
             else:
                 params = layer_def['params']
                 bn_features = layer_def['bn_features']
-                layers.append(layer(**params))
-                layers.append(nn.BatchNorm2d(bn_features))
-                layers.append(activation())
+                sequential = nn.Sequential(
+                    layer(**params),
+                    nn.BatchNorm2d(bn_features),
+                    activation()
+                )
+                layer.append(sequential)
 
         return nn.Sequential(*layers)
 
