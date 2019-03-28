@@ -1,0 +1,56 @@
+layer:
+  type: conv
+  activation: relu
+  params:
+    in_channels: 6
+    out_channels: 64
+    kernel_size: 2
+    padding: 1
+    stride: 1
+  bn_features: 64
+
+layer:
+  type: residual
+  activation: relu
+  params1:
+    in_channels: 64
+    out_channels: 128
+    kernel_size: 2
+    padding: 1
+    bias: false
+  params2:
+    in_channels: 128
+    out_channels: 256
+    kernel_size: 2
+    bias: false
+  shortcut:
+    in_channels: 64
+    out_channels: 256
+    kernel_size: 1
+    stride: 1
+    bias: false
+  bn_features1: 128
+  bn_features2: 256
+
+layer:
+  type: residual
+  activation: relu
+  params1:
+    in_channels: 256
+    out_channels: 256
+    kernel_size: 2
+    padding: 1
+    bias: false
+  params2:
+    in_channels: 256
+    out_channels: 512
+    kernel_size: 2
+    bias: false
+  shortcut:
+    in_channels: 256
+    out_channels: 512
+    kernel_size: 1
+    stride: 1
+    bias: false
+  bn_features1: 256
+  bn_features2: 512
