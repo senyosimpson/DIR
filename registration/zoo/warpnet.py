@@ -4,6 +4,8 @@ for Deformable Medical Image Registration](https://arxiv.org/abs/1711.08608)
 import yaml
 import torch
 import torch.nn as nn
+from .stn import SpatialTransformer
+
 
 class ResidualUnit(nn.Module):
     def __init__(self, params, bn_features, activation, shortcut=None):
@@ -32,7 +34,7 @@ class ResidualUnit(nn.Module):
 
 
 class WarpNet(nn.Module):
-    def __init__(self, architecture):
+    def __init__(self, architecture, stn):
         """
         Args:
             architecture (str) : path to file that describes
@@ -42,7 +44,7 @@ class WarpNet(nn.Module):
         super().__init__()
         self.layer_types = {
             'conv' : nn.Conv2d,
-            'deconv': nn.ConvTranspose2d,
+            'convtranspose': nn.ConvTranspose2d,
             'affine' : nn.Linear,
             'residual' : ResidualUnit,
         }
@@ -51,7 +53,7 @@ class WarpNet(nn.Module):
         }
         self.architecture = architecture
         self.model = self._build_model(self.architecture)
-
+        self.stn = stn
 
     def _build_model(self, architecture):
         """ Build the model from yaml specification
@@ -69,6 +71,7 @@ class WarpNet(nn.Module):
             layer = self.layer_types[layer_def['type']]
             activation = self.activations[layer_def['activation']]
 
+            # rename keywords to more understandable names
             if layer_def['type'] == 'residual' :
                 params1 = layer_def['params1']
                 params2 = layer_def['params2']
@@ -93,9 +96,7 @@ class WarpNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-
-    def forward(self, fixed, moving):
-        model_input = torch.cat([fixed, moving], dim=1)
-        x = self.model(model_input)
-        # add stn module here
+    def forward(self, x):
+        x = self.model(x)
+        x = self.stn(x)
         return x
