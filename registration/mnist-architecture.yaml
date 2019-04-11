@@ -54,3 +54,36 @@ layer:
     bias: false
   bn_features1: 256
   bn_features2: 512
+
+layer:
+  type: convtranspose
+  params:
+    in_channels: 512
+    out_channels: 256
+    kernel_size: 2
+    stride: 1
+    padding: 1
+
+layer:
+  type: convtranspose
+  in_channels: 256
+  out_channels: 128
+  kernel_size: 2
+  stride: 1
+  padding: 1
+
+layer:
+  type: convtranspose
+  in_channels: 128
+  out_channels: 64
+  kernel_size: 2
+  stride: 1
+  padding: 1
+
+layer:
+  type: convtranspose
+  in_channels: 64
+  out_channels: 6
+  kernel_size: 2
+  stride: 1
+  padding: 1
