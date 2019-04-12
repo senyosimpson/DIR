@@ -1,4 +1,4 @@
-# encoding: utf-8
+""" TPS implementation taken from [TPS](https://github.com/WarBean/tps_stn_pytorch) """
 
 import torch
 import itertools
