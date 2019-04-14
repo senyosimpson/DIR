@@ -1,2 +1,3 @@
 from .warpnet import WarpNet
-from .stn import SpatialTransformer
+from .tps_stn import SpatialTransformer as ThinPlateTransformer
+from .affine_stn import SpatialTransformer as AffineTransformer
