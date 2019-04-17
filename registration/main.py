@@ -6,10 +6,11 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from torchvision.datasets import MNIST
 from torchvision import transforms
+from registration.data.datasets import MNIST
+from registration.data.transforms import ToTensor, Normalize
 from registration.zoo import WarpNet
-from registration.zoo import SpatialTransformer
+from registration.zoo import AffineTransformer, ThinPlateTransformer
 
 
 if __name__ == '__main__':
@@ -21,6 +22,15 @@ if __name__ == '__main__':
     logger.addHandler(handler)
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset',
+                        type=str,
+                        required=True,
+                        help='path to dataset')
+    parser.add_argument('--ds_size',
+                        type=int,
+                        required=False,
+                        default=60000,
+                        help='size of dataset to generate')
     parser.add_argument('--arch',
                         type=str,
                         required=True,
@@ -48,12 +58,17 @@ if __name__ == '__main__':
                         required=False,
                         default=0.9,
                         help='percentage of image dimensions to span over')
+    parser.add_argument('--batch_size',
+                        type=int,
+                        required=False,
+                        default=10,
+                        help='training batch size')
     args = parser.parse_args()
 
-    logging.info('')
-    logging.info('MAIN SCRIPT STARTED')
+    logger.info('')
+    logger.info('MAIN SCRIPT STARTED')
 
-    spatial_transformer = SpatialTransformer(
+    spatial_transformer = ThinPlateTransformer(
                             args.stn_type,
                             args.image_height,
                             args.image_width,
@@ -61,28 +76,37 @@ if __name__ == '__main__':
                             args.span_range)
 
     warpnet = WarpNet(args.arch, spatial_transformer)
-    logging.info('Model Created')
+    logger.info('Model Created')
 
     use_cuda = not False and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
     optimizer = optim.SGD(warpnet.parameters(), lr=0.01, momentum=0.9)
+    photometric_diff_loss = nn.L1Loss()
+    # smoothing_loss = None
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 
     tsfm = transforms.Compose([
-                        transforms.ToTensor(),
-                        transforms.Normalize((0.1307,), (0.3081,))
+                        Normalize(),
+                        ToTensor()
                         ])
+    
+    mnist = MNIST(args.dataset, args.size, transform=tsfm)
     train_loader = torch.utils.data.DataLoader(
-                            MNIST('data',
-                                  train=True,
-                                  download=False,
-                                  transform=tsfm,
-                                  batch_size=32,
-                                  shuffle=True,
-                                  **kwargs))
+                                mnist,
+                                batch_size=args.batch_size,
+                                shuffle=True,
+                                num_workers=2)
 
-for batch_idx, (data, target) in enumerate(train_loader):
-    data, target = data.to(device), target.to(device)
+for batch_idx, (fixed, moving) in enumerate(train_loader):
+    fixed, moving = fixed.to(device), moving.to(device)
     optimizer.zero_grad()
-    output = warpnet(data)
-    # define loss functions
+    output = warpnet(fixed, moving)
+
+    # calculate photometric diff loss and smoothing loss
+    alpha = 1 # weight term for the photometric diff loss
+    beta = 0.5 # weight term for the smoothing loss
+    pdl = photometric_diff_loss(output, fixed)
+    #sl = smoothing_loss(output, target)
+    total_loss = alpha*pdl #+ beta*sl
+    total_loss.backward()
+    logger.info(total_loss)
