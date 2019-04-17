@@ -9,12 +9,16 @@ class MNIST(Dataset):
     """ MNIST dataset generated from the mnist csv files found on kaggle
     at [MNIST csv](https://www.kaggle.com/oddrationale/mnist-in-csv)
     """
-    def __init__(self, path, size):
+    def __init__(self, path, size, transform=None):
         self.mnist, self.mnist_pairs = self.build_dataset(path, size)
+        self.transform = transform
 
     def __getitem__(self, idx):
         pair = self.mnist_pairs[idx]
-        return self.convert_pair_to_image(pair)
+        sample = self.convert_pair_to_image(pair)
+        if self.transform:
+            sample = self.transform(sample)
+        return sample
 
     def __len__(self):
         return len(self.mnist)
