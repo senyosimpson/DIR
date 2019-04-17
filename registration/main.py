@@ -90,7 +90,7 @@ if __name__ == '__main__':
                         ToTensor()
                         ])
     
-    mnist = MNIST(args.dataset, args.size, transform=tsfm)
+    mnist = MNIST(args.dataset, args.ds_size, transform=tsfm)
     train_loader = torch.utils.data.DataLoader(
                                 mnist,
                                 batch_size=args.batch_size,
@@ -109,4 +109,5 @@ for batch_idx, (fixed, moving) in enumerate(train_loader):
     #sl = smoothing_loss(output, target)
     total_loss = alpha*pdl #+ beta*sl
     total_loss.backward()
-    logger.info(total_loss)
+    optimizer.step()
+    logger.info('loss: %.3f' % total_loss.item())
