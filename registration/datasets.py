@@ -6,6 +6,9 @@ import pandas as pd
 
 
 class MNIST(Dataset):
+    """ MNIST dataset generated from the mnist csv files found on kaggle
+    at [MNIST csv](https://www.kaggle.com/oddrationale/mnist-in-csv)
+    """
     def __init__(self, path, size):
         self.mnist, self.mnist_pairs = self.build_dataset(path, size)
 
