@@ -1,89 +1,117 @@
-layer:
+layer1:
   type: conv
   activation: relu
   params:
-    in_channels: 6
+    in_channels: 2
     out_channels: 64
-    kernel_size: 2
-    padding: 1
+    kernel_size: 3
     stride: 1
+    padding: 1
   bn_features: 64
 
-layer:
+layer2:
   type: residual
   activation: relu
-  params1:
+  conv1_params:
     in_channels: 64
     out_channels: 128
-    kernel_size: 2
+    kernel_size: 3
+    stride: 2
     padding: 1
     bias: false
-  params2:
+  conv2_params:
     in_channels: 128
     out_channels: 256
-    kernel_size: 2
+    kernel_size: 3
+    stride: 1
+    padding: 1
     bias: false
   shortcut:
     in_channels: 64
     out_channels: 256
     kernel_size: 1
-    stride: 1
+    stride: 2
     bias: false
-  bn_features1: 128
-  bn_features2: 256
+  bn1_features: 128
+  bn2_features: 256
 
-layer:
+layer3:
   type: residual
   activation: relu
-  params1:
+  conv1_params:
     in_channels: 256
     out_channels: 256
-    kernel_size: 2
+    kernel_size: 3
+    stride: 2
     padding: 1
     bias: false
-  params2:
+  conv2_params:
     in_channels: 256
     out_channels: 512
-    kernel_size: 2
+    kernel_size: 3
+    stride: 1
+    padding: 1
     bias: false
   shortcut:
     in_channels: 256
     out_channels: 512
     kernel_size: 1
-    stride: 1
+    stride: 2
     bias: false
-  bn_features1: 256
-  bn_features2: 512
+  bn1_features: 256
+  bn2_features: 512
 
-layer:
+layer4:
   type: convtranspose
+  activation: relu
   params:
     in_channels: 512
     out_channels: 256
-    kernel_size: 2
+    kernel_size: 3
     stride: 1
     padding: 1
+  bn_features: 256
 
-layer:
+layer5:
   type: convtranspose
-  in_channels: 256
-  out_channels: 128
-  kernel_size: 2
-  stride: 1
-  padding: 1
+  activation: relu
+  params:
+    in_channels: 256
+    out_channels: 128
+    kernel_size: 2
+    stride: 2
+    padding: 0
+  bn_features: 128
 
-layer:
+layer6:
   type: convtranspose
-  in_channels: 128
-  out_channels: 64
-  kernel_size: 2
-  stride: 1
-  padding: 1
+  activation: relu
+  params:
+    in_channels: 128
+    out_channels: 64
+    kernel_size: 2
+    stride: 2
+    padding: 0
+  bn_features: 64
 
-layer:
+layer7:
   type: convtranspose
-  in_channels: 64
-  out_channels: 6
-  kernel_size: 2
-  stride: 1
-  padding: 1
+  activation: relu
+  params:
+    in_channels: 64
+    out_channels: 2
+    kernel_size: 3
+    stride: 1
+    padding: 1
+  bn_features: 2
+
+layer8:
+  type: convtranspose
+  activation: relu
+  params:
+    in_channels: 2
+    out_channels: 1
+    kernel_size: 1
+    stride: 1
+    padding: 0
+  bn_features: 1
