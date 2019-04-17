@@ -93,10 +93,10 @@ class SpatialTransformer(nn.Module):
         self.loc_net = GridLocNet(self.grid_height, self.grid_width, target_control_points)
         self.tps = TPSGridGen(self.image_height, self.image_width, target_control_points)
 
-    def forward(self, x):
+    def forward(self, x, moving):
         batch_size = x.size(0)
         source_control_points = self.loc_net(x)
         source_coordinate = self.tps(source_control_points)
         grid = source_coordinate.view(batch_size, self.image_height, self.image_width, 2)
-        transformed_x = grid_sample(x, grid)
+        transformed_x = grid_sample(moving, grid)
         return transformed_x

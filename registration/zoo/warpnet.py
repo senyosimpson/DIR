@@ -23,5 +23,5 @@ class WarpNet(nn.Module):
     def forward(self, fixed, moving):
         x = torch.cat((fixed, moving), dim=1)
         x = self.model(x)
-        x = self.stn(x)
+        x = self.stn(x, moving)
         return x
