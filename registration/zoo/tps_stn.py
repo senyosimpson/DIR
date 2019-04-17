@@ -97,6 +97,6 @@ class SpatialTransformer(nn.Module):
         batch_size = x.size(0)
         source_control_points = self.loc_net(x)
         source_coordinate = self.tps(source_control_points)
-        grid = source_coordinate.view(batch_size, self.self.image_height, self.self.image_width, 2)
+        grid = source_coordinate.view(batch_size, self.image_height, self.image_width, 2)
         transformed_x = grid_sample(x, grid)
         return transformed_x
