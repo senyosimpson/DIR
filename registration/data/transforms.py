@@ -10,8 +10,8 @@ class ToTensor:
             sample (tuple(torch.Tensor, torch.Tensor)): Sample converted into a tensor
         '''
         image1, image2 = sample
-        image1 = image1.transpose((2,0,1))
-        image2 = image2.transpose((2,0,1))
+        image1 = image1.reshape((28,28,1)).transpose((2,0,1))
+        image2 = image2.reshape((28,28,1)).transpose((2,0,1))
         return (torch.Tensor(image1), torch.Tensor(image2))
     
 class Normalize:
