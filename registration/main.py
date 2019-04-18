@@ -58,14 +58,18 @@ if __name__ == '__main__':
                         required=False,
                         default=0.9,
                         help='percentage of image dimensions to span over')
-    parser.add_argument('--batch_size',
+    parser.add_argument('--epochs',
                         type=int,
                         required=False,
                         default=10,
+                        help='number of epochs when training')
+    parser.add_argument('--batch_size',
+                        type=int,
+                        required=False,
+                        default=32,
                         help='training batch size')
     args = parser.parse_args()
 
-    logger.info('')
     logger.info('MAIN SCRIPT STARTED')
 
     spatial_transformer = ThinPlateTransformer(
@@ -97,17 +101,28 @@ if __name__ == '__main__':
                                 shuffle=True,
                                 num_workers=2)
 
-for batch_idx, (fixed, moving) in enumerate(train_loader):
-    fixed, moving = fixed.to(device), moving.to(device)
-    optimizer.zero_grad()
-    output = warpnet(fixed, moving)
+# details of training
+logger.info('')
+logger.info('Size of Training Dataset : %d' % (len(train_loader) * args.batch_size))
+logger.info('Batch Size : %d' % args.batch_size)
+logger.info('Number of Epochs : %d' % args.epochs)
+logger.info('Steps per Epoch : %d' % len(train_loader))
+logger.info('')
 
-    # calculate photometric diff loss and smoothing loss
-    alpha = 1 # weight term for the photometric diff loss
-    beta = 0.5 # weight term for the smoothing loss
-    pdl = photometric_diff_loss(output, fixed)
-    #sl = smoothing_loss(output, target)
-    total_loss = alpha*pdl #+ beta*sl
-    total_loss.backward()
-    optimizer.step()
-    logger.info('loss: %.3f' % total_loss.item())
+
+for epoch in range(args.epochs):
+    logger.info('============== Epoch %d/%d ==============' %(epoch, args.epochs))
+    for batch_idx, (fixed, moving) in enumerate(train_loader):
+        fixed, moving = fixed.to(device), moving.to(device)
+        optimizer.zero_grad()
+        output = warpnet(fixed, moving)
+
+        # calculate photometric diff loss and smoothing loss
+        alpha = 1 # weight term for the photometric diff loss
+        beta = 0.5 # weight term for the smoothing loss
+        pdl = photometric_diff_loss(output, fixed)
+        #sl = smoothing_loss(output, target)
+        total_loss = alpha*pdl #+ beta*sl
+        total_loss.backward()
+        optimizer.step()
+        logger.info('step: %d, loss: %.3f' % (batch_idx, total_loss.item()))
