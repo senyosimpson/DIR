@@ -46,7 +46,7 @@ def resize_image(image, image_shape):
         image_shape (tuple) :
     """
     image = skimage.transform.resize(image, image_shape, anti_aliasing=True)
-    return image
+    return image.astype(np.float32)
 
 
 def slice_image(image, dim, idx):
