@@ -1,5 +1,24 @@
 import torch
 
+class Reshape:
+    def __init__(self, shape):
+        self.shape = shape
+
+    def __call__(self, sample):
+        image1, image2 = sample
+        image1 = image1.reshape(self.shape)
+        image2 = image2.reshape(self.shape)
+        return (image1, image2)
+
+
+class Transpose:
+    def __call__(self, sample):
+        image1, image2 = sample
+        image1 = image1.transpose((2,0,1))
+        image2 = image2.transpose((2,0,1))
+        return (image1, image2)
+
+
 class ToTensor:
     def __call__(self, sample):
         '''
@@ -10,10 +29,9 @@ class ToTensor:
             sample (tuple(torch.Tensor, torch.Tensor)): Sample converted into a tensor
         '''
         image1, image2 = sample
-        image1 = image1.reshape((28,28,1)).transpose((2,0,1))
-        image2 = image2.reshape((28,28,1)).transpose((2,0,1))
         return (torch.Tensor(image1), torch.Tensor(image2))
     
+
 class Normalize:
     def __call__(self, sample):
         '''
