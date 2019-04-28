@@ -1,5 +1,6 @@
 python3 -m registration.main \
---dataset registration/data/mnist/mnist_train.csv \
---arch registration/mnist-architecture.yaml \
---image_height 28 \
---image_width 28
+--dataset registration/data/mri/mri-dataset.h5 \
+--logdir checkpoints/ \
+--grid_size 12 \
+--image_height 256 \
+--image_width 256
