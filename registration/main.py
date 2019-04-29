@@ -7,11 +7,11 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import transforms
-from registration.data.datasets import MNIST
-from registration.data.transforms import ToTensor, Normalize
+from registration.data.datasets import LPBA40
+from registration.data.transforms import ToTensor, Normalize, Transpose
 from registration.zoo import WarpNet
 from registration.zoo import AffineTransformer, ThinPlateTransformer
-
+from datetime import datetime
 
 if __name__ == '__main__':
     logger = logging.getLogger('dir')
@@ -26,19 +26,18 @@ if __name__ == '__main__':
                         type=str,
                         required=True,
                         help='path to dataset')
-    parser.add_argument('--ds_size',
-                        type=int,
+    parser.add_argument('--load_checkpoint',
+                        type=str,
                         required=False,
-                        default=60000,
-                        help='size of dataset to generate')
-    parser.add_argument('--arch',
+                        help='path to checkpoint to load')
+    parser.add_argument('--logdir',
                         type=str,
                         required=True,
-                        help='path to architecture ')
+                        help='path to save model checkpoints')
     parser.add_argument('--stn_type',
                         type=str,
                         required=False,
-                        default='unbounded',
+                        default='bounded',
                         help='unbounded or bounded stn type')
     parser.add_argument('--image_height',
                         type=int,
@@ -71,6 +70,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     logger.info('MAIN SCRIPT STARTED')
+    use_cuda = not False and torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
 
     spatial_transformer = ThinPlateTransformer(
                             args.stn_type,
@@ -79,27 +80,31 @@ if __name__ == '__main__':
                             args.grid_size,
                             args.span_range)
 
-    warpnet = WarpNet(args.arch, spatial_transformer)
-    logger.info('Model Created')
 
-    use_cuda = not False and torch.cuda.is_available()
-    device = torch.device("cuda" if use_cuda else "cpu")
-    optimizer = optim.SGD(warpnet.parameters(), lr=0.01, momentum=0.9)
+    model = WarpNet(stn=spatial_transformer)
+    model.to(device)
+    optimizer = optim.Adam(model.parameters(), lr=1e-5, betas=(0.9, 0.999), weight_decay=0.0005)
     photometric_diff_loss = nn.L1Loss()
-    # smoothing_loss = None
-    kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
+    # define smoothing loss
+
+    if args.load_checkpoint:
+        checkpoint = torch.load(args.load_checkpoint)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        #epoch = checkpoint['epoch']
+        loss = checkpoint['loss']
 
     tsfm = transforms.Compose([
                         Normalize(),
                         ToTensor()
                         ])
     
-    mnist = MNIST(args.dataset, args.ds_size, transform=tsfm)
+    mri = LPBA40(args.dataset, transform=tsfm)
     train_loader = torch.utils.data.DataLoader(
-                                mnist,
+                                mri,
                                 batch_size=args.batch_size,
                                 shuffle=True,
-                                num_workers=2)
+                                num_workers=1)
 
 # details of training
 logger.info('')
@@ -109,20 +114,30 @@ logger.info('Number of Epochs : %d' % args.epochs)
 logger.info('Steps per Epoch : %d' % len(train_loader))
 logger.info('')
 
+date = datetime.today().strftime('%m_%d')
 
 for epoch in range(args.epochs):
-    logger.info('============== Epoch %d/%d ==============' %(epoch, args.epochs))
+    logger.info('============== Epoch %d/%d ==============' % (epoch+1, args.epochs))
     for batch_idx, (fixed, moving) in enumerate(train_loader):
         fixed, moving = fixed.to(device), moving.to(device)
         optimizer.zero_grad()
-        output = warpnet(fixed, moving)
+        output = model(fixed, moving)
 
         # calculate photometric diff loss and smoothing loss
-        alpha = 1 # weight term for the photometric diff loss
+        alpha = 10 # weight term for the photometric diff loss
         beta = 0.5 # weight term for the smoothing loss
-        pdl = photometric_diff_loss(output, fixed)
-        #sl = smoothing_loss(output, target)
-        total_loss = alpha*pdl #+ beta*sl
-        total_loss.backward()
+        pd_loss = photometric_diff_loss(output, fixed)
+        #s_loss = smoothing_loss(output, target)
+        loss = alpha * pd_loss #+ beta*sl
+        loss.backward()
         optimizer.step()
-        logger.info('step: %d, loss: %.3f' % (batch_idx, total_loss.item()))
+        logger.info('step: %d, loss: %.3f' % (batch_idx, loss.item()))
+
+    save_path =  'warpnet_mri_checkpoint_%d_%s%s' % (epoch+1, date, '.pt')
+    torch.save({
+            'epoch': epoch,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'loss': loss},
+            f = os.path.join(args.logdir, save_path)) 
+    logger.info('Checkpoint saved to %s' % save_path)
