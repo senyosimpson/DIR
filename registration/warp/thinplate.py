@@ -73,7 +73,8 @@ def tps_grid(theta, ctrl, size):
         Grid suitable for sampling in pytorch containing source image
         locations for each output pixel.
     '''    
-    N, _, H, W = size
+    #N, _, H, W = size
+    N, H, W = size
 
     grid = theta.new(N, H, W, 3)
     grid[:, :, :, 0] = 1.
