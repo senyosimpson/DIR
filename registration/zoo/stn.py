@@ -20,19 +20,20 @@ class SpatialTransformer(nn.Module):
         self.conv2_drop = nn.Dropout2d()
         self.fc1 = nn.Linear(2048, 256)
         self.fc2 = nn.Linear(256, self.nparam*2)
+        self.tanh = nn.Tanh()
 
         self.fc2.weight.data.normal_(0, 1e-3)
         self.fc2.bias.data.zero_()
 
-    def forward(self, x):
+    def forward(self, x, moving):
         x = F.relu(F.max_pool2d(self.conv1(x), kernel_size=6, padding=3))
         x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), kernel_size=6, padding=3))
         x = x.view(32, -1)
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
-        x = F.tanh(self.fc2(x))
+        x = self.tanh(self.fc2(x))
 
         theta = x.view(-1, self.nparam, 2)
         grid = thinplate.tps_grid(theta, self.ctrl, (x.shape[0], ) + self.outshape)
-        transformed_x = F.grid_sample(x, grid)
-        return transformed_x
+        registered = F.grid_sample(moving, grid)
+        return registered
