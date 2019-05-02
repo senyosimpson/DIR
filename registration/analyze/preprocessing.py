@@ -51,7 +51,6 @@ if __name__ == "__main__":
             name='Brain MRI Dataset',
             shape=(72580, 2, 256, 256),
             dtype=np.float32,
-            compression='gzip',
             chunks=(32,2,256,256)
         )
         pos = 0
