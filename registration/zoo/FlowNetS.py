@@ -5,6 +5,7 @@ Model taken from NVIDIA PyTorch implementation of FlowNet
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.nn import init
 
 import math
@@ -14,9 +15,10 @@ from .submodules import *
 'Parameter count : 38,676,504 '
 
 class FlowNetS(nn.Module):
-    def __init__(self, args, input_channels=2, use_batchnorm=True):
+    def __init__(self, stn, input_channels=2, use_batchnorm=True):
         super(FlowNetS,self).__init__()
 
+        self.stn = stn
         self.use_batchnorm = use_batchnorm
         self.conv1   = conv(self.use_batchnorm,  input_channels,   64, kernel_size=7, stride=2)
         self.conv2   = conv(self.use_batchnorm,  64,  128, kernel_size=5, stride=2)
@@ -28,6 +30,7 @@ class FlowNetS(nn.Module):
         self.conv5_1 = conv(self.use_batchnorm, 512,  512)
         self.conv6   = conv(self.use_batchnorm, 512, 1024, stride=2)
         self.conv6_1 = conv(self.use_batchnorm,1024, 1024)
+        self.conv7   = conv(self.use_batchnorm, 2, 1, kernel_size=1, stride=1)
 
         self.deconv5 = deconv(1024,512)
         self.deconv4 = deconv(1026,256)
@@ -56,7 +59,8 @@ class FlowNetS(nn.Module):
                     init.uniform_(m.bias)
                 init.xavier_uniform_(m.weight)
 
-    def forward(self, x):
+    def forward(self, fixed, moving):
+        x = torch.stack((fixed, moving), dim=1)
         out_conv1 = self.conv1(x)
 
         out_conv2 = self.conv2(out_conv1)
@@ -87,8 +91,15 @@ class FlowNetS(nn.Module):
         concat2 = torch.cat((out_conv2,out_deconv2,flow3_up),1)
         flow2 = self.predict_flow2(concat2)
 
-        if self.training:
-            return flow2,flow3,flow4,flow5,flow6
-        else:
-            return flow2
+        output = F.interpolate(flow2, scale_factor=4, mode='bilinear')
+        output = self.conv7(output)
+        moving = moving.reshape((32, 1, 256, 256))
+        registered = self.stn(output, moving)
+        return registered
+
+        # For use later when doing multi scale loss
+        # if self.training:
+            #return flow2,flow3,flow4,flow5,flow6
+        #else:
+            #return flow2
 

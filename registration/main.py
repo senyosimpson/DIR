@@ -9,11 +9,13 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from registration.data.datasets import LPBA40
 from registration.data.transforms import ToTensor, Normalize, Transpose
-from registration.zoo import WarpNet
-from registration.zoo import AffineTransformer, ThinPlateTransformer
+from registration.zoo import FlowNetS
+from registration.zoo import AffineTransformer, ThinPlateTransformer, STN
 from datetime import datetime
 
 if __name__ == '__main__':
+    date = datetime.today().strftime('%m_%d')
+
     logger = logging.getLogger('dir')
     logger.setLevel(logging.INFO)
     handler = logging.StreamHandler()
@@ -73,25 +75,20 @@ if __name__ == '__main__':
     use_cuda = not False and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    spatial_transformer = ThinPlateTransformer(
-                            args.stn_type,
-                            args.image_height,
-                            args.image_width,
-                            args.grid_size,
-                            args.span_range)
-
-
-    model = WarpNet(stn=spatial_transformer)
+    spatial_transformer = STN()
+    model = FlowNetS(stn=spatial_transformer)
     model.to(device)
+    model.train()
     optimizer = optim.Adam(model.parameters(), lr=1e-5, betas=(0.9, 0.999), weight_decay=0.0005)
     photometric_diff_loss = nn.L1Loss()
     # define smoothing loss
 
+    start_epoch = 0
     if args.load_checkpoint:
         checkpoint = torch.load(args.load_checkpoint)
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        #epoch = checkpoint['epoch']
+        start_epoch = checkpoint['epoch']
         loss = checkpoint['loss']
 
     tsfm = transforms.Compose([
@@ -104,7 +101,7 @@ if __name__ == '__main__':
                                 mri,
                                 batch_size=args.batch_size,
                                 shuffle=True,
-                                num_workers=1)
+                                num_workers=0)
 
 # details of training
 logger.info('')
@@ -114,9 +111,8 @@ logger.info('Number of Epochs : %d' % args.epochs)
 logger.info('Steps per Epoch : %d' % len(train_loader))
 logger.info('')
 
-date = datetime.today().strftime('%m_%d')
 
-for epoch in range(args.epochs):
+for epoch in range(start_epoch, args.epochs):
     logger.info('============== Epoch %d/%d ==============' % (epoch+1, args.epochs))
     for batch_idx, (fixed, moving) in enumerate(train_loader):
         fixed, moving = fixed.to(device), moving.to(device)
@@ -128,7 +124,7 @@ for epoch in range(args.epochs):
         beta = 0.5 # weight term for the smoothing loss
         pd_loss = photometric_diff_loss(output, fixed)
         #s_loss = smoothing_loss(output, target)
-        loss = alpha * pd_loss #+ beta*sl
+        loss = alpha * pd_loss # + (beta * s_loss)
         loss.backward()
         optimizer.step()
         logger.info('step: %d, loss: %.3f' % (batch_idx, loss.item()))
