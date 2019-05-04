@@ -33,7 +33,7 @@ def get_image(path, image_shape):
         image_shape (tuple) : shape of the output image
     """
     with open(path, 'rb') as f:
-        image = np.fromfile(f, np.uint16)
+        image = np.fromfile(f, np.int16)
         image = image.reshape(image_shape)
         if len(image_shape) == 4:
             image = image.squeeze()
