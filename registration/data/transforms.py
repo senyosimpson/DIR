@@ -29,7 +29,7 @@ class ToTensor:
             sample (tuple(torch.Tensor, torch.Tensor)): Sample converted into a tensor
         '''
         image1, image2 = sample
-        return (torch.Tensor(image1), torch.Tensor(image2))
+        return torch.stack((torch.Tensor(image1), torch.Tensor(image2)),dim=0)
     
 
 class Normalize:
