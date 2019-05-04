@@ -100,7 +100,6 @@ if __name__ == '__main__':
     train_loader = torch.utils.data.DataLoader(
                                 mri,
                                 batch_size=args.batch_size,
-                                shuffle=True,
                                 num_workers=0)
 
 # details of training
@@ -113,21 +112,26 @@ logger.info('')
 
 
 for epoch in range(start_epoch, args.epochs):
+    mean_loss = 0
     logger.info('============== Epoch %d/%d ==============' % (epoch+1, args.epochs))
-    for batch_idx, (fixed, moving) in enumerate(train_loader):
-        fixed, moving = fixed.to(device), moving.to(device)
+    for batch_idx, image_pair in enumerate(train_loader):
+        image_pair = image_pair.to(device)
         optimizer.zero_grad()
-        output = model(fixed, moving)
+        registered = model(image_pair)
 
         # calculate photometric diff loss and smoothing loss
         alpha = 10 # weight term for the photometric diff loss
         beta = 0.5 # weight term for the smoothing loss
-        pd_loss = photometric_diff_loss(output, fixed)
+        fixed = image_pair[:,0:1,:,:]
+        pd_loss = photometric_diff_loss(registered, fixed)
         #s_loss = smoothing_loss(output, target)
         loss = alpha * pd_loss # + (beta * s_loss)
         loss.backward()
         optimizer.step()
+        mean_loss += loss.item()
         logger.info('step: %d, loss: %.3f' % (batch_idx, loss.item()))
+    
+    logger.info('epoch : %d, average loss : %.3f' % (epoch+1, mean_loss))
 
     save_path =  'warpnet_mri_checkpoint_%d_%s%s' % (epoch+1, date, '.pt')
     torch.save({
