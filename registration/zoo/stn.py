@@ -7,7 +7,7 @@ from registration.warp import thinplate
 
 
 class SpatialTransformer(nn.Module):
-    def __init__(self, outshape=(256, 256), ctrlshape=(12, 12)):
+    def __init__(self, outshape=(1, 256, 256), ctrlshape=(6, 6)):
         super().__init__()
         self.nctrl = np.prod(ctrlshape)
         self.outshape = outshape
@@ -25,8 +25,8 @@ class SpatialTransformer(nn.Module):
         self.fc2.weight.data.normal_(0, 1e-3)
         self.fc2.bias.data.zero_()
 
-    def forward(self, x, moving):
-        x = F.relu(F.max_pool2d(self.conv1(x), kernel_size=6, padding=3))
+    def forward(self, deformation_field, moving):
+        x = F.relu(F.max_pool2d(self.conv1(deformation_field), kernel_size=6, padding=3))
         x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), kernel_size=6, padding=3))
         x = x.view(32, -1)
         x = F.relu(self.fc1(x))
