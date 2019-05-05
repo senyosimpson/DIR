@@ -17,6 +17,6 @@ class MultiScaleLoss(nn.Module):
             registered = F.grid_sample(moving, grid)
             scale_factor = outshape[0]/256
             fixed = F.interpolate(fixed, scale_factor=scale_factor)
-            loss += self.pd_loss(registered, fixed).item()
+            loss += self.pd_loss(registered, fixed)
 
         return loss
