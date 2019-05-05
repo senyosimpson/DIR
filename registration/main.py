@@ -10,7 +10,7 @@ from torchvision import transforms
 from registration.data.datasets import LPBA40
 from registration.data.transforms import ToTensor, Normalize, Transpose
 from registration.zoo import FlowNetS
-from registration.zoo import AffineTransformer, ThinPlateTransformer, STN
+from registration.zoo import STN
 from datetime import datetime
 
 if __name__ == '__main__':
