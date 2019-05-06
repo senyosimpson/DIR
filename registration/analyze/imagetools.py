@@ -14,16 +14,12 @@ def _create_analyze_header(path):
         hdr = AnalyzeHeader(f.read())
         return hdr
 
-def get_image_shape(hdr=None, path=None):
+def get_image_shape(path):
     """
     Arguments:
-        hdr (AnalyzeHeader) : an analyze header object
+        path (str) : path to header file
     """
-    assert hdr is None or path is None, 'One argument from {hdr, path} must be specified'
-    if path:
-        image_shape = _create_analyze_header(path).get_data_shape()
-        return image_shape
-    image_shape = hdr.get_data_shape()
+    image_shape = _create_analyze_header(path).get_data_shape()
     return image_shape
 
 def get_image(path, image_shape):
@@ -34,6 +30,19 @@ def get_image(path, image_shape):
     """
     with open(path, 'rb') as f:
         image = np.fromfile(f, np.int16)
+        image = image.reshape(image_shape)
+        if len(image_shape) == 4:
+            image = image.squeeze()
+        return image
+
+def get_image_mask(path, image_shape):
+    """
+    Arguments:
+        path (str) : path to analyze mask image
+        image_shape (tuple) : shape of the segmentation mask
+    """
+    with open(path, 'rb') as f:
+        image = np.fromfile(f, np.int8)
         image = image.reshape(image_shape)
         if len(image_shape) == 4:
             image = image.squeeze()
