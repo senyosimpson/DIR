@@ -1,6 +1,7 @@
 '''
 Portions of this code copyright 2017, Clement Pinard
-Model taken from NVIDIA PyTorch implementation of FlowNet
+Model taken from NVIDIA PyTorch implementation of FlowNet2
+[FlowNet2 PyTorch](https://github.com/NVIDIA/flownet2-pytorch)
 '''
 
 import torch
@@ -20,7 +21,8 @@ class FlowNetS(nn.Module):
 
         self.stn = stn
         self.use_batchnorm = use_batchnorm
-        self.conv1   = conv(self.use_batchnorm,  input_channels,   64, kernel_size=7, stride=2)
+        self.conv0   = conv(self.use_batchnorm, input_channels, 32, kernel_size=7) 
+        self.conv1   = conv(self.use_batchnorm,  32,   64, kernel_size=7, stride=2)
         self.conv2   = conv(self.use_batchnorm,  64,  128, kernel_size=5, stride=2)
         self.conv3   = conv(self.use_batchnorm, 128,  256, kernel_size=5, stride=2)
         self.conv3_1 = conv(self.use_batchnorm, 256,  256)
@@ -36,6 +38,7 @@ class FlowNetS(nn.Module):
         self.deconv3 = deconv(770, 128)
         self.deconv2 = deconv(386, 64)
         self.deconv1 = deconv(194, 32)
+        self.deconv0  = deconv(98, 2)
 
         self.predict_flow6 = predict_flow(1024)
         self.predict_flow5 = predict_flow(1026)
@@ -43,6 +46,7 @@ class FlowNetS(nn.Module):
         self.predict_flow3 = predict_flow(386)
         self.predict_flow2 = predict_flow(194)
         self.predict_flow1 = predict_flow(98)
+        self.predict_flow0 = predict_flow(36)
 
         self.upsampled_flow6_to_5 = nn.ConvTranspose2d(2, 2, kernel_size=4, stride=2, padding=1, bias=False)
         self.upsampled_flow5_to_4 = nn.ConvTranspose2d(2, 2, kernel_size=4, stride=2, padding=1, bias=False)
@@ -63,7 +67,8 @@ class FlowNetS(nn.Module):
                 init.xavier_uniform_(m.weight)
 
     def forward(self, image_pair):
-        out_conv1 = self.conv1(image_pair)
+        out_conv0 = self.conv0(image_pair)
+        out_conv1 = self.conv1(out_conv0)
 
         out_conv2 = self.conv2(out_conv1)
         out_conv3 = self.conv3_1(self.conv3(out_conv2))
@@ -98,8 +103,12 @@ class FlowNetS(nn.Module):
         concat1 = torch.cat((out_conv1, out_deconv1, flow2_up), 1)
         flow1       = self.predict_flow1(concat1)
         flow1_up    = self.upsampled_flow1_to_0(flow1)
+        out_deconv0 = self.deconv0(concat1)
+        
+        concat0 = torch.cat((out_conv0, out_deconv0, flow1_up), 1)
+        flow0       = self.predict_flow0(concat0)
 
-        deformation_field = flow1_up
+        deformation_field = flow0
         
         moving = image_pair[:,1:2:,:]
         registered, theta = self.stn(deformation_field, moving)
@@ -107,7 +116,7 @@ class FlowNetS(nn.Module):
 
         # For use later when doing multi scale loss
         # if self.training:
-            #return flow2,flow3,flow4,flow5,flow6
+            #return (flow1_up, flow1, flow2,flow3,flow4,flow5,flow6)
         #else:
-            #return flow2
+            #return flow1_up
 
