@@ -98,7 +98,7 @@ if __name__ == '__main__':
                         ToTensor()
                         ])
     
-    mri = LPBA40_2(args.dataset, seed=args.seed, transform=tsfm)
+    mri = LPBA40(args.dataset, seed=args.seed, transform=tsfm)
     train_loader = torch.utils.data.DataLoader(
                                 mri,
                                 shuffle=False,
