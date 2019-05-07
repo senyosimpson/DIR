@@ -105,45 +105,45 @@ if __name__ == '__main__':
                                 batch_size=args.batch_size,
                                 num_workers=args.num_workers)
 
-# details of training
-logger.info('')
-logger.info('Size of Training Dataset : %d' % (len(train_loader) * args.batch_size))
-logger.info('Batch Size : %d' % args.batch_size)
-logger.info('Number of Epochs : %d' % args.epochs)
-logger.info('Steps per Epoch : %d' % len(train_loader))
-logger.info('')
+    # details of training
+    logger.info('')
+    logger.info('Size of Training Dataset : %d' % (len(train_loader) * args.batch_size))
+    logger.info('Batch Size : %d' % args.batch_size)
+    logger.info('Number of Epochs : %d' % args.epochs)
+    logger.info('Steps per Epoch : %d' % len(train_loader))
+    logger.info('')
 
 
-for epoch in range(start_epoch, args.epochs):
-    mean_loss = 0
-    logger.info('============== Epoch %d/%d ==============' % (epoch+1, args.epochs))
-    for batch_idx, image_pair in enumerate(train_loader):
-        image_pair = image_pair.to(device)
-        optimizer.zero_grad()
-        registered, _ = model(image_pair)
+    for epoch in range(start_epoch, args.epochs):
+        mean_loss = 0
+        logger.info('============== Epoch %d/%d ==============' % (epoch+1, args.epochs))
+        for batch_idx, image_pair in enumerate(train_loader):
+            image_pair = image_pair.to(device)
+            optimizer.zero_grad()
+            registered, _ = model(image_pair)
 
-        # calculate photometric diff loss and smoothing loss
-        alpha = 1 # weight term for the photometric diff loss
-        beta = 0.5 # weight term for the smoothing loss
-        fixed = image_pair[:,0:1,:,:]
-        pd_loss = photometric_diff_loss(registered, fixed)
-        #s_loss = smoothing_loss(output, target)
-        loss = alpha * pd_loss # + (beta * s_loss)
-        loss.backward()
-        optimizer.step()
+            # calculate photometric diff loss and smoothing loss
+            alpha = 1 # weight term for the photometric diff loss
+            beta = 0.5 # weight term for the smoothing loss
+            fixed = image_pair[:,0:1,:,:]
+            pd_loss = photometric_diff_loss(registered, fixed)
+            #s_loss = smoothing_loss(output, target)
+            loss = alpha * pd_loss # + (beta * s_loss)
+            loss.backward()
+            optimizer.step()
 
-        logger.info('step: %d, loss: %.3f' % (batch_idx, loss.item()))
-        mean_loss += loss.item()
-    
-    logger.info('epoch : %d, average loss : %.3f' % (epoch+1, mean_loss/len(train_loader)))
+            logger.info('step: %d, loss: %.3f' % (batch_idx, loss.item()))
+            mean_loss += loss.item()
+        
+        logger.info('epoch : %d, average loss : %.3f' % (epoch+1, mean_loss/len(train_loader)))
 
-    save_path =  'warpnet_mri_checkpoint_%d_%s%s' % (epoch+1, date, '.pt')
-    torch.save({
-            'epoch': epoch,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            'loss': loss},
-            f = os.path.join(args.logdir, save_path)) 
-    logger.info('Checkpoint saved to %s' % save_path)
+        save_path =  'warpnet_mri_checkpoint_%d_%s%s' % (epoch+1, date, '.pt')
+        torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'loss': loss},
+                f = os.path.join(args.logdir, save_path)) 
+        logger.info('Checkpoint saved to %s' % save_path)
 
-logger.info('Training Complete')
+    logger.info('Training Complete')
