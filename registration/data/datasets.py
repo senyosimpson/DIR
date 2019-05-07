@@ -116,7 +116,7 @@ class LPBA40(Dataset):
                 paired as (fixed, moving) and slice index
         """
         dataset = []
-        Pair = namedtuple('Pair', 'fixed moving, depth')
+        Pair = namedtuple('Pair', 'fixed moving depth')
         image_paths = glob(os.path.join(self.root, '*.img'))
         for image1_path in image_paths:
             pair_image_paths = filter(lambda x: x != image1_path, image_paths)
