@@ -40,6 +40,10 @@ if __name__ == '__main__':
                         type=str,
                         required=True,
                         help='path to save model checkpoints')
+    parser.add_argument('--seed',
+                        type=int,
+                        required=False,
+                        help='value to set random seed')
     parser.add_argument('--grid_size',
                         type=int,
                         required=False,
@@ -55,13 +59,19 @@ if __name__ == '__main__':
                         required=False,
                         default=32,
                         help='training batch size')
+    parser.add_argument('--num_workers',
+                        type=int,
+                        required=False,
+                        default=4,
+                        help='number of workers for data loading')
     args = parser.parse_args()
 
     logger.info('MAIN SCRIPT STARTED')
     use_cuda = not False and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    spatial_transformer = STN()
+    grid_size = (args.grid_size, args.grid_size)
+    spatial_transformer = STN(ctrlshape=grid_size)
     spatial_transformer = spatial_transformer.to(device)
     model = FlowNetS(stn=spatial_transformer)
     if args.pretrained:
@@ -88,12 +98,12 @@ if __name__ == '__main__':
                         ToTensor()
                         ])
     
-    mri = LPBA40(args.dataset, transform=tsfm)
+    mri = LPBA40_2(args.dataset, seed=args.seed, transform=tsfm)
     train_loader = torch.utils.data.DataLoader(
                                 mri,
                                 shuffle=False,
                                 batch_size=args.batch_size,
-                                num_workers=0)
+                                num_workers=args.num_workers)
 
 # details of training
 logger.info('')
