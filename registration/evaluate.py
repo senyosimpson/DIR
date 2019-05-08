@@ -81,15 +81,15 @@ if __name__ == '__main__':
     device = torch.device("cuda" if use_cuda else "cpu")
 
     warper = Warper()
+    warper.to(device)
 
     grid_size = (args.grid_size, args.grid_size)
     spatial_transformer = STN(ctrlshape=grid_size)
     spatial_transformer = spatial_transformer.to(device)
     model = FlowNetS(stn=spatial_transformer)
 
-    #weights = torch.load(args.load_model)
-    #model.load_state_dict(weights['model_state_dict'])
-    model.load_state_dict(torch.load(args.load_model), strict=False)
+    weights = torch.load(args.load_model)
+    model.load_state_dict(weights['model_state_dict'])
     model.to(device)
     model.eval()
 
@@ -117,22 +117,26 @@ if __name__ == '__main__':
     mi = []
     jacc = []
     logger.info('============== Starting Evaluation ==============')
-    for batch_idx, images in enumerate(test_loader):
-        logger.info('Batch %d/%d' % (batch_idx+1, len(test_loader)))
-        image_pair = images[:,:2,:,:]
-        fixed_mask, moving_mask = images[:,2,:,:], images[:,3:4,:,:] # 32 x 256 x 256, 32 x 1 x 256 x 256
-        image_pair = image_pair.to(device)
-        registered, theta = model(image_pair) # 32 x 1 x 256 x 256
-        registered_mask = warper(theta, moving_mask) # 32 x 1 x 256 x 256
+    with torch.no_grad():
+        for batch_idx, images in enumerate(test_loader):
+            logger.info('Batch %d/%d' % (batch_idx+1, len(test_loader)))
+            image_pair = images[:,:2,:,:]
+            fixed_mask, moving_mask = images[:,2,:,:], images[:,3:4,:,:] 
+            image_pair = image_pair.to(device)
+            registered, theta = model(image_pair) 
+            moving_mask = moving_mask.to(device)
+            registered_mask = warper(theta, moving_mask) 
 
-        # evaluate
-        fixed_mask = fixed_mask.numpy()
-        registered_mask = registered_mask.squeeze().numpy() # 32 x 256 x256
-        jacc += [jaccard_coeff(fixed_mask[idx], registered_mask[idx]) for idx in range(args.batch_size)]
+            # evaluate
+            fixed_mask = fixed_mask.cpu().numpy()
+            fixed_mask = fixed_mask.astype(np.uint8)
+            registered_mask = registered_mask.squeeze().cpu().numpy() 
+            registered_mask = registered_mask.astype(np.uint8) # check
+            jacc += [jaccard_coeff(fixed_mask[idx], registered_mask[idx]) for idx in range(args.batch_size)]
 
-        fixed = image_pair[:,0,:,:].numpy() # 32 x 256 x 256
-        registered = registered.squeeze().numpy() # 32 x 256 x 256
-        mi += [mutual_information(fixed[idx], registered[idx]) for idx in range(args.batch_size)]
+            fixed = image_pair[:,0,:,:].cpu().numpy() 
+            registered = registered.squeeze().cpu().numpy() 
+            mi += [mutual_information(fixed[idx], registered[idx]) for idx in range(args.batch_size)]
 
     mean_mi = np.array(mi).mean()
     mean_jacc = np.array(jacc).mean()
@@ -140,7 +144,7 @@ if __name__ == '__main__':
     metric_names = ['Mutual Information', 'Jaccard Coefficient']
     metric_scores = [mean_mi, mean_jacc]
 
-    df = pd.DataFrame({metric : score for metric, score in zip(metric_names, metric_scores)})
+    df = pd.DataFrame({metric : [score] for metric, score in zip(metric_names, metric_scores)})
     df.to_csv(args.out)
-    print('Mean Mutual Information', mean_mi)
-    print('Mean Jaccard Coefficient', mean_jacc)
+    logger.info('Mean Mutual Information : %s' % mean_mi)
+    logger.info('Mean Jaccard Coefficient : %s' % mean_jacc)
