@@ -80,8 +80,7 @@ if __name__ == '__main__':
     use_cuda = not False and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    warper = Warper()
-    warper.to(device)
+    warper = Warper().to(device)
 
     grid_size = (args.grid_size, args.grid_size)
     spatial_transformer = STN(ctrlshape=grid_size)
@@ -106,14 +105,14 @@ if __name__ == '__main__':
                                 batch_size=args.batch_size,
                                 num_workers=args.num_workers)
 
-    # details of training
+    # details of evaluation
     logger.info('')
     logger.info('Size of Evaluation Dataset : %d' % (len(test_loader) * args.batch_size))
     logger.info('Batch Size : %d' % args.batch_size)
+    logger.info('Number of steps : %d' % len(test_loader))
     logger.info('')
 
 
-    mean_loss = 0
     mi = []
     jacc = []
     logger.info('============== Starting Evaluation ==============')
@@ -129,9 +128,8 @@ if __name__ == '__main__':
 
             # evaluate
             fixed_mask = fixed_mask.cpu().numpy()
-            fixed_mask = fixed_mask.astype(np.uint8)
             registered_mask = registered_mask.squeeze().cpu().numpy() 
-            registered_mask = registered_mask.astype(np.uint8) # check
+            registered_mask = np.around(registered_mask)
             jacc += [jaccard_coeff(fixed_mask[idx], registered_mask[idx]) for idx in range(args.batch_size)]
 
             fixed = image_pair[:,0,:,:].cpu().numpy() 
