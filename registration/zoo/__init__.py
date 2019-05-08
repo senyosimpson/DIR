@@ -1,2 +1,2 @@
 from .stn import SpatialTransformer as STN
-from .FlowNetS import FlowNetS
+from .flownet import FlowNetS
