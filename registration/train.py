@@ -74,8 +74,16 @@ if __name__ == '__main__':
     spatial_transformer = STN(ctrlshape=grid_size)
     spatial_transformer = spatial_transformer.to(device)
     model = FlowNetS(stn=spatial_transformer)
+
     if args.pretrained:
         model.load_state_dict(torch.load(args.pretrained), strict=False)
+    elif args.load_checkpoint:
+        checkpoint = torch.load(args.load_checkpoint)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        start_epoch = checkpoint['epoch']
+        loss = checkpoint['loss']
+    
     model.to(device)
     model.train()
     optimizer = optim.Adam(list(model.parameters()) + list(spatial_transformer.parameters()),
@@ -84,14 +92,6 @@ if __name__ == '__main__':
 
     photometric_diff_loss = nn.L1Loss()
     # define smoothing loss
-
-    start_epoch = 0
-    if args.load_checkpoint:
-        checkpoint = torch.load(args.load_checkpoint)
-        model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        start_epoch = checkpoint['epoch']
-        loss = checkpoint['loss']
 
     tsfm = transforms.Compose([
                         Normalize(),
@@ -113,7 +113,7 @@ if __name__ == '__main__':
     logger.info('Steps per Epoch : %d' % len(train_loader))
     logger.info('')
 
-
+    start_epoch = start_epoch if args.load_checkpoint else 0
     for epoch in range(start_epoch, args.epochs):
         mean_loss = 0
         logger.info('============== Epoch %d/%d ==============' % (epoch+1, args.epochs))
@@ -138,6 +138,9 @@ if __name__ == '__main__':
         logger.info('epoch : %d, average loss : %.3f' % (epoch+1, mean_loss/len(train_loader)))
 
         save_path =  'warpnet_mri_checkpoint_%d_%s%s' % (epoch+1, date, '.pt')
+        if args.pretrained:
+            save_path =  'warpnet_mri_pretrained_checkpoint_%d_%s%s' % (epoch+1, date, '.pt')
+
         torch.save({
                 'epoch': epoch,
                 'model_state_dict': model.state_dict(),
