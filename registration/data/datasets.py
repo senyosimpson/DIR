@@ -1,7 +1,6 @@
 import torch
 from torch.utils.data import Dataset
 import os
-import cv2
 import h5py
 import random
 import nibabel
