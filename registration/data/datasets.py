@@ -120,8 +120,8 @@ class LPBA40(Dataset):
         for image1_path in image_paths:
             pair_image_paths = filter(lambda x: x != image1_path, image_paths)
             for image2_path in pair_image_paths:
-                fixed_subj = 'S%s' % os.path.basename(image1_path)[1:3]
-                moving_subj = 'S%s' % os.path.basename(image2_path)[1:3]
+                fixed_subj = os.path.basename(image1_path)[:3]
+                moving_subj = os.path.basename(image2_path)[:3]
                 for d in range(20, 101):
                     dataset.append(Pair(fixed=fixed_subj, moving=moving_subj, depth=d))
         
