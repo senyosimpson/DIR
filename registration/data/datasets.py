@@ -1,9 +1,15 @@
 import torch
 from torch.utils.data import Dataset
+import os
 import h5py
 import random
+import nibabel
+import skimage
 import numpy as np
 import pandas as pd
+from glob import glob
+from collections import namedtuple
+from registration.analyze import imagetools
 
 
 class MNIST(Dataset):
@@ -53,40 +59,74 @@ class MNIST(Dataset):
 
 
 class LPBA40(Dataset):
-    def __init__(self, path, training=True, data_splits=(62592, 9984), transform=None):
-        """
-        Arguments:
-            path (str) : path to h5py file
-            data_splits (tuple) : split of the dataset specified as either absolute values
-                or values adding up to 1 i.e (0.8, 0.2). format is (train_size, test_size)
-        """
-        self.dataset = h5py.File(path, 'r')['Brain MRI Dataset']
-        self.train_split, self.test_split = self.get_splits(data_splits)
-        self.transform = transform
+    def __init__(self, root, train_split=0.9, training=True, seed=None, transform=None):
+        if seed:
+            random.seed(seed)
+        self.root = root
         self.training = training
-
+        self.dataset = self.build_dataset(train_split)
+        self.transform = transform
+        self.image_shape = imagetools.get_image_shape(os.path.join(self.root, 'native.mri.hdr'))
 
     def __getitem__(self, idx):
-        if self.training:
-            sample = self.dataset[idx]
-        else:
-            sample = self.dataset[-idx]
+        pair = self.dataset[idx]
+        fixed_subj_no = pair.fixed
+        moving_subj_no = pair.moving
+        slice_depth = pair.depth
 
+        fixed_path = os.path.join(self.root, '%s.native.mri.img' % fixed_subj_no)
+        moving_path = os.path.join(self.root, '%s.native.mri.img' % moving_subj_no)
+
+        fixed = imagetools.get_image(fixed_path, self.image_shape)
+        moving = imagetools.get_image(moving_path, self.image_shape)
+
+        if not self.training:
+            fixed_mask_path = os.path.join(self.root, '%s.native.brain.mask.img' % fixed_subj_no)
+            moving_mask_path = os.path.join(self.root, '%s.native.brain.mask.img' % moving_subj_no)
+            fixed_mask = imagetools.get_image_mask(fixed_mask_path, self.image_shape)
+            moving_mask = imagetools.get_image_mask(moving_mask_path, self.image_shape)
+            images = [fixed, moving, fixed_mask, moving_mask]
+            sample = np.array([imagetools.slice_image(image, dim=1, idx=slice_depth) for image in images])
+            assert sample.shape == (4, 256, 256)
+            if self.transform:
+                sample = self.transform(sample)
+            return sample
+
+        fixed = imagetools.slice_image(fixed, dim=1, idx=slice_depth)
+        moving = imagetools.slice_image(moving, dim=1, idx=slice_depth)
+
+        sample = np.array([fixed, moving])
+        assert sample.shape == (2, 256, 256)
         if self.transform:
             sample = self.transform(sample)
         return sample
-                
 
     def __len__(self):
-        if self.training:
-            return self.train_split
-        else:
-            return self.test_split
+        return len(self.dataset)
     
-    def get_splits(self, data_splits):
-        train_split, test_split = data_splits
-        if train_split < 1:
-            train_split = int(len(self.dataset) * train_split)
-            test_split = int(len(self.dataset) * test_split)
-            return train_split, test_split
-        return train_split, test_split
+    def build_dataset(self, train_split):
+        """ Builds a dataset on initialization
+
+        Arguments:
+            train_split (int) : value from 0 to 1 denoting percentage of dataset to use for training
+        
+        Returns:
+            dataset list(namedtuple) : list containing namedtuple objects of subject numbers
+                paired as (fixed, moving) and slice index
+        """
+        dataset = []
+        Pair = namedtuple('Pair', 'fixed moving depth')
+        image_paths = glob(os.path.join(self.root, '*.img'))
+        for image1_path in image_paths:
+            pair_image_paths = filter(lambda x: x != image1_path, image_paths)
+            for image2_path in pair_image_paths:
+                fixed_subj = os.path.basename(image1_path)[:3]
+                moving_subj = os.path.basename(image2_path)[:3]
+                for d in range(20, 101):
+                    dataset.append(Pair(fixed=fixed_subj, moving=moving_subj, depth=d))
+        
+        random.shuffle(dataset)
+        #size = int(len(dataset) * train_split)
+        if self.training:
+            return dataset[:27680]
+        return dataset[27680:30752]
