@@ -15,8 +15,11 @@ The learning approach uses a convolutional architecture as outlined [here](https
 | Classical | 0.977 | 0.951 | 5.61 |
 | Learning | 0.975 | 0.664 | 0.273 |
 
-__Learning based results__
-<img src="./results/learning_results_small.png" alt="learning-results" width="500"/>
+### Learning based results
 
-__Classical based results__
-<img src="./results/classical_results_small.png" alt="classical-results" width="500"/>
+<img src="./results/learning_results_small.png" alt="learning-results" width="600"/>
+
+
+### Classical based results
+
+<img src="./results/classical_results_small.png" alt="classical-results" width="600"/>
