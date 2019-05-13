@@ -9,8 +9,14 @@ The learning approach uses a convolutional architecture as outlined [here](https
 
 ## Results
 
+|Method | Jacc | MI | Run time [s] |
+|---|---|---|---|
+|No Registration | 0.934 | 0.476 | - |
+| Classical | 0.977 | 0.951 | 5.61 |
+| Learning | 0.975 | 0.664 | 0.273 |
+
 __Learning based results__
-![](./results/learning_results_small.png)
+<img src="./results/learning_results_small.png" alt="learning-results" width="500"/>
 
 __Classical based results__
-![](./results/classical_results_small.png)
+<img src="./results/classical_results_small.png" alt="classical-results" width="500"/>
