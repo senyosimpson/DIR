@@ -122,7 +122,7 @@ if __name__ == '__main__':
             image_pair = images[:,:2,:,:]
             fixed_mask, moving_mask = images[:,2,:,:], images[:,3:4,:,:] 
             image_pair = image_pair.to(device)
-            registered, theta = model(image_pair) 
+            registered, theta, _ = model(image_pair) 
             moving_mask = moving_mask.to(device)
             registered_mask = warper(theta, moving_mask) 
 
@@ -146,3 +146,4 @@ if __name__ == '__main__':
     df.to_csv(args.out)
     logger.info('Mean Mutual Information : %s' % mean_mi)
     logger.info('Mean Jaccard Coefficient : %s' % mean_jacc)
+    logger.info("Evaluation Complete")
