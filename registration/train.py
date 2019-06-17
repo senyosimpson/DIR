@@ -11,6 +11,7 @@ from registration.data.datasets import LPBA40
 from registration.data.transforms import ToTensor, Normalize, Transpose
 from registration.zoo import FlowNetS
 from registration.zoo import STN
+from registration.losses import SmoothingLoss
 from datetime import datetime
 
 if __name__ == '__main__':
@@ -71,9 +72,8 @@ if __name__ == '__main__':
     device = torch.device("cuda" if use_cuda else "cpu")
 
     grid_size = (args.grid_size, args.grid_size)
-    spatial_transformer = STN(ctrlshape=grid_size)
-    spatial_transformer = spatial_transformer.to(device)
-    model = FlowNetS(stn=spatial_transformer)
+    spatial_transformer = STN(ctrlshape=grid_size).to(device)
+    model = FlowNetS(stn=spatial_transformer).to(device)
 
     if args.pretrained:
         model.load_state_dict(torch.load(args.pretrained), strict=False)
@@ -84,13 +84,13 @@ if __name__ == '__main__':
         start_epoch = checkpoint['epoch']
         loss = checkpoint['loss']
     
-    model.to(device)
     model.train()
     optimizer = optim.Adam(list(model.parameters()) + list(spatial_transformer.parameters()),
                            lr=1e-5, betas=(0.9, 0.999),
                            weight_decay=0.0005)
 
     photometric_diff_loss = nn.L1Loss()
+    smoothing_loss = SmoothingLoss()
     # define smoothing loss
 
     tsfm = transforms.Compose([
@@ -120,15 +120,15 @@ if __name__ == '__main__':
         for batch_idx, image_pair in enumerate(train_loader):
             image_pair = image_pair.to(device)
             optimizer.zero_grad()
-            registered, _ = model(image_pair)
+            registered, _, deformation_field = model(image_pair)
 
             # calculate photometric diff loss and smoothing loss
             alpha = 1 # weight term for the photometric diff loss
-            beta = 0.5 # weight term for the smoothing loss
+            beta = 0.05 # weight term for the smoothing loss
             fixed = image_pair[:,0:1,:,:]
             pd_loss = photometric_diff_loss(registered, fixed)
-            #s_loss = smoothing_loss(output, target)
-            loss = alpha * pd_loss # + (beta * s_loss)
+            s_loss = smoothing_loss(deformation_field)
+            loss = alpha * pd_loss + (beta * s_loss)
             loss.backward()
             optimizer.step()
 
