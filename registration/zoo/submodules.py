@@ -20,5 +20,5 @@ def deconv(in_channels, out_channels):
         nn.ReLU(inplace=True)
     )
 
-def predict_flow(in_planes):
-    return nn.Conv2d(in_planes,2,kernel_size=3,stride=1,padding=1,bias=True)
+def predict_flow(in_planes, out_planes=2):
+    return nn.Conv2d(in_planes,out_planes,kernel_size=3,stride=1,padding=1,bias=True)

@@ -13,7 +13,6 @@ import math
 import numpy as np
 
 from .submodules import *
-'Parameter count : 38,676,504 '
 
 class FlowNetS(nn.Module):
     def __init__(self, stn, input_channels=2, use_batchnorm=True):
@@ -106,13 +105,13 @@ class FlowNetS(nn.Module):
         out_deconv0 = self.deconv0(concat1)
         
         concat0 = torch.cat((out_conv0, out_deconv0, flow1_up), 1)
-        flow0       = self.predict_flow0(concat0)
+        flow0       = self.predict_flow0(concat0, out_planes=1)
 
         deformation_field = flow0
         
         moving = image_pair[:,1:2:,:]
         registered, theta = self.stn(deformation_field, moving)
-        return registered, theta
+        return registered, theta, deformation_field
 
         # For use later when doing multi scale loss
         # if self.training:
