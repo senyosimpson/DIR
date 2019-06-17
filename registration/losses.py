@@ -7,7 +7,7 @@ class SmoothingLoss(nn.Module):
     def __init__(self):
         super().__init__()
         self.xsobel = torch.Tensor(
-                            [[1, 0, 1],
+                            [[1, 0, -1],
                             [2, 0, -2],
                             [1, 0, -1]])
 
