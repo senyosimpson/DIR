@@ -128,7 +128,7 @@ if __name__ == '__main__':
             fixed = image_pair[:,0:1,:,:]
             pd_loss = photometric_diff_loss(registered, fixed)
             s_loss = smoothing_loss(deformation_field)
-            loss = alpha * pd_loss + (beta * s_loss)
+            loss = alpha * pd_loss # + (beta * s_loss)
             loss.backward()
             optimizer.step()
 

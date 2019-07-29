@@ -105,7 +105,7 @@ class FlowNetS(nn.Module):
         out_deconv0 = self.deconv0(concat1)
         
         concat0 = torch.cat((out_conv0, out_deconv0, flow1_up), 1)
-        flow0       = self.predict_flow0(concat0, out_planes=1)
+        flow0       = self.predict_flow0(concat0,)
 
         deformation_field = flow0
         
